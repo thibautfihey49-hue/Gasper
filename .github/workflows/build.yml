@@ -5,27 +5,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
-      - name: Build APK Debug
-        run: |
-          chmod +x gradlew
-          ./gradlew wrapper --gradle-version 8.6
-          ./gradlew assembleDebug --no-daemon
-      - name: Upload APK artifact
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle 8.6
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.6
+
+      - name: Build APK Debug (sans wrapper)
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Notes-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
-      - name: Commit APK to releases folder
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Push APK to releases folder
         run: |
+          APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n1)
           mkdir -p releases
-          cp app/build/outputs/apk/debug/app-debug.apk releases/Notes-debug.apk
+          cp "$APK" releases/Notes-debug.apk
           git config user.email "bot@github.com"
           git config user.name "builder-bot"
-          git add releases/Notes-debug.apk || true
-          git commit -m "APK built ${{ github.sha }}" || true
+          git add releases/Notes-debug.apk
+          git commit -m "APK auto-built" || true
           git push origin HEAD:main || true
