@@ -9,7 +9,6 @@ import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.telephony.SmsManager
-import android.view.Gravity
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
@@ -122,29 +121,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun appendNote(author: String, body: String, isMe: Boolean) {
-        val card = TextView(this)
-        card.text = "$author\n$body"
-        card.textSize = 15f
-        card.setPadding(24, 20, 24, 20)
-        card.setBackgroundColor(if (isMe) Color.parseColor("#FFF9C4") else Color.parseColor("#FFFFFF"))
-        val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-        params.setMargins(0, 0, 16)
-        card.layoutParams = params
-        card.elevation = 2f
-
-        // On ajoute visuellement dans le ScrollView via TextView principale + carte
-        // Pour rester simple: on reconstruit avec des blocs texte style note
         val current = tvConversation.text.toString()
-        val newBlock = if (isMe) ">> $body" else "$body"
-        val newText = if (current.isEmpty()) newBlock else "$current\n\n---\n$newBlock"
+        val newBlock = if (isMe) "Moi: $body" else "$author: $body"
+        val newText = if (current.isEmpty() || current == "Aucune note pour l'instant...") newBlock else "$current\n\n---\n$newBlock"
         tvConversation.text = newText
-
         getSharedPreferences(prefsName, MODE_PRIVATE).edit().putString(key, newText).apply()
         scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
     }
 
     private fun loadConversation() {
-        tvConversation.text = getSharedPreferences(prefsName, MODE_PRIVATE).getString(key, "") ?: "Aucune note pour l'instant..."
+        val txt = getSharedPreferences(prefsName, MODE_PRIVATE).getString(key, "") ?: ""
+        tvConversation.text = if (txt.isEmpty()) "Aucune note pour l'instant..." else txt
     }
 
     override fun onDestroy() {
