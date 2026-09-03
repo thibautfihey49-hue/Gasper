@@ -1,25 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:padding="12dp" android:background="#FFFFFF">
-    
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Notes" android:textSize="22sp" android:textStyle="bold"/>
-        <Button android:id="@+id/btnClear" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="CLEAR"/>
-        <Button android:id="@+id/btnClose" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="X" android:layout_marginStart="8dp"/>
+    android:orientation="vertical" android:background="#FFF8E1">
+
+    <!-- Toolbar fausse app Notes -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="56dp"
+        android:background="#FFC107" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:elevation="4dp">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="Mes notes" android:textSize="20sp" android:textStyle="bold" android:textColor="#000"/>
+        <TextView android:id="@+id/tvNumberBadge" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:visibility="gone" android:background="#FFF3E0" android:padding="6dp" android:textSize="11sp" android:textColor="#666"/>
+        <Button android:id="@+id/btnClear" android:layout_width="32dp" android:layout_height="32dp"
+            android:text="X" android:background="?android:attr/selectableItemBackgroundBorderless" android:layout_marginStart="8dp"/>
     </LinearLayout>
 
-    <EditText android:id="@+id/etNumber" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:hint="Numero +33..." android:inputType="phone" android:layout_marginTop="12dp" android:background="#EEEEEE" android:padding="12dp"/>
-
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="8dp">
-        <EditText android:id="@+id/etMessage" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:hint="Ecrire une note..." android:minHeight="48dp" android:background="#EEEEEE" android:padding="12dp"/>
-        <Button android:id="@+id/btnSend" android:layout_width="wrap_content" android:layout_height="48dp" android:text="SEND" android:layout_marginStart="8dp"/>
+    <!-- Zone numero qui disparait -->
+    <LinearLayout android:id="@+id/layoutNumber" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="16dp" android:background="#FFFFFF" android:elevation="2dp">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Numero a synchroniser" android:textSize="12sp" android:textColor="#888"/>
+        <EditText android:id="@+id/etNumber" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="+336..." android:inputType="phone" android:background="@android:drawable/edit_text"
+            android:padding="12dp" android:layout_marginTop="8dp"/>
+        <Button android:id="@+id/btnSaveNumber" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="ENREGISTRER" android:layout_marginTop="8dp" android:backgroundTint="#FFC107"/>
     </LinearLayout>
 
-    <ScrollView android:id="@+id/scrollView" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
-        android:layout_marginTop="12dp" android:background="#F5F5F5">
-        <TextView android:id="@+id/tvConversation" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="12dp" android:textSize="15sp"/>
+    <!-- Liste notes style carte -->
+    <ScrollView android:id="@+id/scrollView" android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:padding="12dp">
+        <TextView android:id="@+id/tvConversation" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="15sp" android:lineSpacingExtra="4dp"/>
     </ScrollView>
+
+    <!-- Barre d'ecriture en bas -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:padding="12dp" android:background="#FFFFFF" android:elevation="8dp">
+        <EditText android:id="@+id/etMessage" android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:hint="Ecrire une note..." android:background="#F5F5F5"
+            android:padding="14dp" android:minHeight="48dp"/>
+        <Button android:id="@+id/btnSend" android:layout_width="48dp" android:layout_height="48dp"
+            android:text=">" android:layout_marginStart="8dp" android:backgroundTint="#FFC107"/>
+    </LinearLayout>
+
+    <!-- Bouton pour re-afficher numero -->
+    <Button android:id="@+id/btnClose" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
 </LinearLayout>

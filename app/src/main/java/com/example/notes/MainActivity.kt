@@ -5,12 +5,16 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.telephony.SmsManager
+import android.view.Gravity
+import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -25,15 +29,20 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSend: Button
     private lateinit var tvConversation: TextView
     private lateinit var scrollView: ScrollView
+    private lateinit var layoutNumber: LinearLayout
+    private lateinit var tvNumberBadge: TextView
     private val prefsName = "notes_prefs"
     private val key = "conversation_history"
+    private val numberKey = "last_number"
+
     private val smsReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context?, i: Intent?) {
             val from = i?.getStringExtra("from") ?: "?"
             val body = i?.getStringExtra("body") ?: return
-            appendMessage("[$from]: $body")
+            appendNote(from, body, false)
         }
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -42,44 +51,102 @@ class MainActivity : AppCompatActivity() {
         btnSend = findViewById(R.id.btnSend)
         tvConversation = findViewById(R.id.tvConversation)
         scrollView = findViewById(R.id.scrollView)
-        tvConversation.text = getSharedPreferences(prefsName, MODE_PRIVATE).getString(key, "") ?: ""
+        layoutNumber = findViewById(R.id.layoutNumber)
+        tvNumberBadge = findViewById(R.id.tvNumberBadge)
+
+        val prefs = getSharedPreferences(prefsName, MODE_PRIVATE)
+        val savedNumber = prefs.getString(numberKey, "") ?: ""
+
+        if (savedNumber.isNotEmpty()) {
+            layoutNumber.visibility = View.GONE
+            tvNumberBadge.visibility = View.VISIBLE
+            tvNumberBadge.text = "Sync: $savedNumber"
+            etNumber.setText(savedNumber)
+        }
+
+        loadConversation()
         LocalBroadcastManager.getInstance(this).registerReceiver(smsReceiver, IntentFilter("NEW_DATA_SMS"))
+
+        findViewById<Button>(R.id.btnSaveNumber).setOnClickListener { saveNumber() }
         btnSend.setOnClickListener { sendSms() }
-        etMessage.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEND) { sendSms(); true } else false
+        etMessage.setOnEditorActionListener { _, a, _ -> if (a == EditorInfo.IME_ACTION_SEND) { sendSms(); true } else false }
+
+        tvNumberBadge.setOnClickListener {
+            layoutNumber.visibility = View.VISIBLE
+            tvNumberBadge.visibility = View.GONE
         }
-        findViewById<Button>(R.id.btnClose).setOnClickListener { finishAndRemoveTask() }
+
         findViewById<Button>(R.id.btnClear).setOnClickListener {
-            getSharedPreferences(prefsName, MODE_PRIVATE).edit().putString(key, "").apply()
+            prefs.edit().putString(key, "").apply()
             tvConversation.text = ""
+            Toast.makeText(this, "Notes effacees", Toast.LENGTH_SHORT).show()
         }
-        etNumber.setText(getSharedPreferences(prefsName, MODE_PRIVATE).getString("last_number", ""))
+
         val perms = mutableListOf(Manifest.permission.SEND_SMS, Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
         if (Build.VERSION.SDK_INT >= 33) perms.add(Manifest.permission.POST_NOTIFICATIONS)
         val need = perms.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
         if (need.isNotEmpty()) ActivityCompat.requestPermissions(this, need.toTypedArray(), 100)
     }
+
+    private fun saveNumber() {
+        val n = etNumber.text.toString().trim()
+        if (n.isEmpty()) { Toast.makeText(this, "Entre un numero", Toast.LENGTH_SHORT).show(); return }
+        getSharedPreferences(prefsName, MODE_PRIVATE).edit().putString(numberKey, n).apply()
+        layoutNumber.visibility = View.GONE
+        tvNumberBadge.visibility = View.VISIBLE
+        tvNumberBadge.text = "Sync: $n"
+        Toast.makeText(this, "Numero enregistre", Toast.LENGTH_SHORT).show()
+    }
+
     private fun sendSms() {
-        val number = etNumber.text.toString().trim()
+        val prefs = getSharedPreferences(prefsName, MODE_PRIVATE)
+        var number = prefs.getString(numberKey, "") ?: ""
+        if (number.isEmpty()) number = etNumber.text.toString().trim()
         val text = etMessage.text.toString().trim()
-        if (number.isEmpty() || text.isEmpty()) return
+        if (number.isEmpty()) { Toast.makeText(this, "Renseigne le numero d'abord", Toast.LENGTH_SHORT).show(); layoutNumber.visibility = View.VISIBLE; return }
+        if (text.isEmpty()) return
         try {
             val sm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) getSystemService(SmsManager::class.java) else SmsManager.getDefault()
             sm.sendDataMessage(number, null, 9999.toShort(), text.toByteArray(Charsets.UTF_8), null, null)
-            appendMessage("Moi: $text")
+            appendNote("Moi", text, true)
             etMessage.text.clear()
-            getSharedPreferences(prefsName, MODE_PRIVATE).edit().putString("last_number", number).apply()
+            if (prefs.getString(numberKey, "")!!.isEmpty()) {
+                prefs.edit().putString(numberKey, number).apply()
+                layoutNumber.visibility = View.GONE
+                tvNumberBadge.visibility = View.VISIBLE
+                tvNumberBadge.text = "Sync: $number"
+            }
         } catch (e: Exception) {
             Toast.makeText(this, "Err: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
-    private fun appendMessage(m: String) {
-        val c = tvConversation.text.toString()
-        val nt = if (c.isEmpty()) m else "$c\n\n$m"
-        tvConversation.text = nt
-        getSharedPreferences(prefsName, MODE_PRIVATE).edit().putString(key, nt).apply()
+
+    private fun appendNote(author: String, body: String, isMe: Boolean) {
+        val card = TextView(this)
+        card.text = "$author\n$body"
+        card.textSize = 15f
+        card.setPadding(24, 20, 24, 20)
+        card.setBackgroundColor(if (isMe) Color.parseColor("#FFF9C4") else Color.parseColor("#FFFFFF"))
+        val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        params.setMargins(0, 0, 16)
+        card.layoutParams = params
+        card.elevation = 2f
+
+        // On ajoute visuellement dans le ScrollView via TextView principale + carte
+        // Pour rester simple: on reconstruit avec des blocs texte style note
+        val current = tvConversation.text.toString()
+        val newBlock = if (isMe) ">> $body" else "$body"
+        val newText = if (current.isEmpty()) newBlock else "$current\n\n---\n$newBlock"
+        tvConversation.text = newText
+
+        getSharedPreferences(prefsName, MODE_PRIVATE).edit().putString(key, newText).apply()
         scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
     }
+
+    private fun loadConversation() {
+        tvConversation.text = getSharedPreferences(prefsName, MODE_PRIVATE).getString(key, "") ?: "Aucune note pour l'instant..."
+    }
+
     override fun onDestroy() {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(smsReceiver)
         super.onDestroy()
